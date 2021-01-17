@@ -1,0 +1,223 @@
+﻿<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="viewport" content="height=device-height, initial-scale=1, user-scalable=no">
+    <style>
+
+        html, body {
+            overflow: hidden;
+            margin: 0px;
+        }
+
+        .canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        divnav {
+            display: block;
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            line-height: 50px;
+            transition: all .7s ease-out;
+            z-index: 99999999;
+        }
+    </style>
+</head>
+
+<body>
+    <divnav>
+
+        <canvas width="960px" height="540px" id="game" class="canvas" />
+
+        <script>
+            var ctx, canvas, tiles, Sveras, ticks;
+            canvas = document.getElementById('game');
+            ctx = canvas.getContext("2d");
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 960, 540);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = "32px Arial";
+            ctx.fillText('Loading..', 400, 270);
+            window.cellSize = Math.random() * 30;
+            window.cellSize2 = window.cellSize / 2;
+            window.cellSize4 = window.cellSize / 4;
+            window.mapXsize = Math.round(960 / window.cellSize);
+            window.mapXsize1 = window.mapXsize - 1;
+            window.mapYsize = Math.round(540 / window.cellSize);
+            window.mapYsize1 = window.mapYsize - 1;
+            class Svera {
+                constructor(x, y, color, ctx, capId) {
+                    this.x = x;
+                    this.y = y;
+                    this.nx = (Math.random() * 2) - 1;
+                    if (Math.random() > 0.5)
+                        this.ny = 1 - Math.abs(this.nx);
+                    else
+                        this.ny = Math.abs(this.nx) - 1;
+                    this.color = color;
+                    this.ctx = ctx;
+                    this.cid = capId;
+                }
+                draw() {
+                    this.ctx.fillStyle = this.color;
+                    this.ctx.fillRect(this.x - window.cellSize4, this.y - window.cellSize4, window.cellSize2, window.cellSize2);
+                }
+                changeColor(color) {
+                    this.color = color;
+                }
+            }
+            class tile {
+                constructor(x, y, color, ctx) {
+                    this.x = x;
+                    this.y = y;
+                    this.color = color;
+                    this.ctx = ctx;
+                    this.IsCapital = false;
+                }
+                draw() {
+                    this.ctx.fillStyle = this.color;
+                    if (this.IsCapital)
+                        this.ctx.fillRect(this.x * window.cellSize + 2, this.y * window.cellSize + 2, window.cellSize - 4, window.cellSize - 4);
+                    else
+                        this.ctx.fillRect(this.x * window.cellSize + 0.5, this.y * window.cellSize + 0.5, window.cellSize - 1, window.cellSize - 1);
+                }
+                changeColor(color) {
+                    this.color = color;
+                    this.draw();
+                }
+            }
+            function Get4bit(val) {
+                if (val < 10) return val;
+                switch (val) {
+                    case 10: return "A";
+                    case 11: return "B";
+                    case 12: return "C";
+                    case 13: return "D";
+                    case 14: return "E";
+                    case 15: return "F";
+                    default: return "F";
+                }
+            }
+            function init() {
+                var color = '#';
+                ticks = 0;
+                Sveras = new Array();
+                tiles = new Array();
+                for (var x = 0; x < window.mapXsize; x++) {
+                    for (var y = 0; y < window.mapYsize; y++) {
+                        color = '#FFFFFF';
+
+                        tiles.push(new tile(x, y, color, ctx));
+                    }
+                }
+                var x = 0;
+                var y = 0;
+                for (var i = 0; i < 10000 /window.cellSize; i++) {
+                    color = '#';
+                    y = Math.round(Math.random() * window.mapYsize1);
+                    x = Math.round(Math.random() * window.mapXsize1);
+                    var id = y * window.mapXsize + x;
+                    while (tiles[id].IsCapital) {
+                        y = Math.round(Math.random() * window.mapYsize1);
+                        x = Math.round(Math.random() * window.mapXsize1);
+                        id = y * window.mapXsize + x;
+                    }
+                    for (var z = 0; z < 6; z++) {
+                        color += Get4bit(Math.round(Math.random() * 16));
+                    }
+                    tiles[id].IsCapital = true;
+                    tiles[id].color = color;
+                    Sveras.push(new Svera(tiles[id].x * window.cellSize + window.cellSize2, tiles[id].y * window.cellSize + window.cellSize2, tiles[id].color, ctx, id));
+
+                }
+                //End
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, 960, 540);
+                for (var i = 0; i < tiles.length; i++) {
+                    tiles[i].draw();
+                }
+
+            }
+            init();
+            function Update() {
+                for (var i = 0; i < Sveras.length; i++) {
+                    var posx = Math.round((Sveras[i].x - window.cellSize2) / window.cellSize);
+                    var posy = Math.round((Sveras[i].y - window.cellSize2) / window.cellSize);
+                    if (tiles[posx * window.mapYsize + posy].color != Sveras[i].color && !tiles[posx * window.mapYsize + posy].IsCapital) {
+                        tiles[Sveras[i].cid].IsCapital = false;
+                        tiles[posx * window.mapYsize + posy].IsCapital = true;
+                        Sveras[i].cid = posx * window.mapYsize + posy;
+                    }
+
+                    Sveras[i].x -= Sveras[i].nx * 0.2 * cellSize;
+                    Sveras[i].y -= Sveras[i].ny * 0.2 * cellSize;
+                    posx = Math.round((Sveras[i].x - window.cellSize2) / window.cellSize);
+                    posy = Math.round((Sveras[i].y - window.cellSize2) / window.cellSize);
+                    Sveras[i].px = posx;
+                    Sveras[i].py = posy;
+                    if (posx > window.mapXsize1 || posx < 0 || posy > window.mapYsize1 || posy < 0) {
+                        Sveras[i].x += Sveras[i].nx * 0.2 * cellSize;
+                        Sveras[i].y += Sveras[i].ny * 0.2 * cellSize;
+                        var NX = -Sveras[i].nx + Math.random() - 0.5;
+                        var NY = -Sveras[i].ny + Math.random() - 0.5;
+                        var SUM = Math.abs(NX) + Math.abs(NY);
+                        NX /= SUM;
+                        NY /= SUM;
+                        Sveras[i].nx = NX;
+                        Sveras[i].ny = NY;
+                    }
+                    if (tiles[Sveras[i].cid].color != Sveras[i].color) {
+                        Sveras[i].color = tiles[Sveras[i].cid].color;
+                        Sveras[i].x = tiles[Sveras[i].cid].x * window.cellSize + window.cellSize2;
+                        Sveras[i].y = tiles[Sveras[i].cid].y * window.cellSize + window.cellSize2;
+                    }
+                    if (!tiles[Sveras[i].cid].IsCapital)
+                        tiles[Sveras[i].cid].IsCapital = true;
+
+                }
+                for (var i = Sveras.length - 1; i >= 0; i--) {
+                    var posx = Math.round((Sveras[i].x - window.cellSize2) / window.cellSize);
+                    var posy = Math.round((Sveras[i].y - window.cellSize2) / window.cellSize);
+                    if (tiles[posx * window.mapYsize + posy].color != Sveras[i].color) {
+                        if (Math.random() < 0.03) {
+                            tiles[posx * window.mapYsize + posy].IsCapital = true;
+                            tiles[Sveras[i].cid].IsCapital = false;
+                            Sveras[i].cid = posx * window.mapYsize + posy;
+                            Sveras[i].color = tiles[posx * window.mapYsize + posy].color;
+                        } else {
+                            tiles[posx * window.mapYsize + posy].color = Sveras[i].color;
+                            var NX = -Sveras[i].nx + Math.random() - 0.5;
+                            var NY = -Sveras[i].ny + Math.random() - 0.5;
+                            var SUM = Math.abs(NX) + Math.abs(NY);
+                            NX /= SUM;
+                            NY /= SUM;
+                            Sveras[i].nx = NX;
+                            Sveras[i].ny = NY;
+                        }
+                    }
+
+                }
+            }
+            function CollisionUpdate() {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, 960, 540);
+                for (var i = 0; i < tiles.length; i++)
+                    tiles[i].draw();
+                for (var i = 0; i < Sveras.length; i++)
+                    Sveras[i].draw();
+            }
+            setInterval(Update, 30);
+            setInterval(CollisionUpdate, 50);
+        </script>
+
+    </divnav>
+</body>
+
+</html>
